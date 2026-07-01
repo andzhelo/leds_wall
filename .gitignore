@@ -1,0 +1,10 @@
+# secrets - never commit
+cred
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+# local editor/agent state
+.claude/settings.local.json
+*.swp
