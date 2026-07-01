@@ -1,0 +1,20 @@
+[Unit]
+Description=Mirror silhouette -> WLED (camera to LED wall)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=andzhelo
+SupplementaryGroups=video
+WorkingDirectory=/home/andzhelo/mirror-poc
+ExecStart=/home/andzhelo/mirror-poc/venv/bin/python /home/andzhelo/mirror-poc/mirror_udp.py
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=3
+# script traps SIGTERM to release the camera cleanly on stop
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
