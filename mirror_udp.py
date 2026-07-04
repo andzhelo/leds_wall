@@ -9,7 +9,7 @@ import signal
 import mediapipe as mp
 
 # --- 1. SYSTEM CONFIGURATION ---
-WLED_IP = "192.168.1.61"
+WLED_IP = "192.168.1.60"
 UDP_PORT = 4048
 
 MATRIX_WIDTH = 30

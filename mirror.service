@@ -8,7 +8,7 @@ Type=simple
 User=andzhelo
 SupplementaryGroups=video
 WorkingDirectory=/home/andzhelo/mirror-poc
-ExecStart=/home/andzhelo/mirror-poc/venv/bin/python /home/andzhelo/mirror-poc/mirror_udp.py
+ExecStart=/home/andzhelo/mirror-poc/venv/bin/python /home/andzhelo/mirror-poc/mirror_rgb.py
 Environment=PYTHONUNBUFFERED=1
 Restart=on-failure
 RestartSec=3
