@@ -62,6 +62,8 @@ DEFAULT_CALIB = {
     # when nobody is in frame: 0 = wall off, 1 = faint slow breathing glow
     "rgb_idle": 1,
     "rgb_idle_bright": 0.06,
+    "rgb_idle_col": [255, 190, 128],   # the glow colour (reads yellow-ish on wood)
+    "rgb_idle_delay": 60,              # frames (~6s) of absence before the glow
 }
 
 _CH = {"R": 0, "G": 1, "B": 2}
@@ -150,7 +152,6 @@ print(f"Ready. Streaming COLOUR mirror to {WLED_IP} ... edit {CALIB_PATH} live. 
 fps_t0, fps_n = time.time(), 0
 auto_gain = 1.0
 absent_frames = 999
-IDLE_COL = np.array([1.0, 0.75, 0.5], np.float32)   # warm white
 
 try:
     while True:
@@ -192,11 +193,12 @@ try:
                 person = cv2.erode(person, np.ones((3, 3), np.uint8), iterations=er)
             person *= 255
 
-            # presence: person occupies enough of the frame (with hysteresis)
+            # presence: person occupies enough of the frame (sticky hysteresis:
+            # easy to keep, hard to lose, so a distant/edge person stays "present")
             area = float(person.mean()) / 255.0
-            if area > 0.008:
+            if area > 0.005:
                 absent_frames = 0
-            elif area < 0.004:
+            elif area < 0.002:
                 absent_frames += 1
 
         # --- FIXED mirror window (1:4 aspect, zoom + pan), mapped to the wall ---
@@ -274,15 +276,17 @@ try:
             canvas = look
 
         # nobody there for a while -> faint slow breathing glow (attract mode)
-        if use_mask and bool(int(c.get("rgb_idle", 1))) and absent_frames > 20:
+        sm = float(c["smoothing"])
+        if use_mask and bool(int(c.get("rgb_idle", 1))) and \
+                absent_frames > int(c.get("rgb_idle_delay", 60)):
+            idle_col = np.array(c.get("rgb_idle_col", [255, 190, 128]), np.float32) / 255.0
             wave = 0.5 + 0.5 * np.sin(2.0 * np.pi *
                                       (np.arange(MATRIX_HEIGHT, dtype=np.float32) / MATRIX_HEIGHT * 1.2
                                        - time.time() / 10.0))
-            canvas = (IDLE_COL[None, None, :] *
+            canvas = (idle_col[None, None, :] *
                       (float(c.get("rgb_idle_bright", 0.06)) * wave)[:, None, None]
                       ) * np.ones((1, MATRIX_WIDTH, 1), np.float32)
-
-        sm = float(c["smoothing"])
+            sm = max(sm, 0.9)   # fade INTO the glow; a person still appears instantly
         smoothed = canvas if smoothed is None else sm * smoothed + (1.0 - sm) * canvas
 
         bright = max(0.0, min(1.0, float(c["brightness"])))
