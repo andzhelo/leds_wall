@@ -29,7 +29,7 @@ import numpy as np
 # ----------------------------------------------------------------------------
 # Panel geometry (logical canvas as WLED sees it)
 # ----------------------------------------------------------------------------
-HOST = "192.168.1.61"   # WLED device IP (see note below about pinning it)
+HOST = "192.168.1.60"   # WLED device IP (see note below about pinning it)
 DDP_PORT = 4048
 W = 30           # columns (width)
 H = 120          # rows (height); y=0 is TOP, y=H-1 is BOTTOM
