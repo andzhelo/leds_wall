@@ -139,3 +139,110 @@ Earlier takes, kept because they're each interesting on their own:
 - `mirror_parts.py`, `mirror_multiclass.py` — multi-class segmentation, colouring
   hair / skin / clothes differently.
 - `mirror_claude.py`, `test.py`, `t.py` — scratch copies from the way there.
+
+---
+
+## 3. Games, played with a gamepad
+
+The wall is 30 x 120. At 3 pixels per block that's a **10 x 40 grid** — which is
+exactly a standard Tetris well, and a genuinely good shape for anything that
+falls. So it became an arcade cabinet.
+
+Input is a gamepad read through `evdev` (developed with a Flydigi Vader 4 Pro in
+XInput mode, which enumerates as a plain "Microsoft X-Box 360 pad", so any
+XInput controller should work). The device is auto-detected; override it with
+`--dev /dev/input/eventN`. Install with `pip3 install evdev`.
+
+### `tetris.py`
+
+A 10-wide, 36-deep well with a HUD at the top showing the next piece.
+
+```bash
+python3 tetris.py
+python3 tetris.py --dev /dev/input/event4 --fps 30
+```
+
+| control | action |
+|---|---|
+| left / right | move |
+| down | soft drop |
+| A / B | rotate CW / CCW |
+| X / Y | hard drop |
+| Start, L / R | pause; restart after game over |
+
+### `snake.py`
+
+10 x 40 of snake — a long, tall playfield. `--wrap` lets you pass through the
+walls instead of dying at them. Steer with the stick or D-pad (no reversing into
+yourself), A or Start to pause and to restart.
+
+### `space_invaders.py`
+
+Two rows of score HUD over a 10 x 38 field. The wall's height works in the
+game's favour: the invaders get a long march down at you instead of the usual
+few rows. Stick or D-pad to move, any face button to fire (one shot on screen at
+a time, classic-style).
+
+### `camera_breakout.py`
+
+Breakout where **you are the paddle**. It reuses the mirror's camera and
+MediaPipe pipeline, takes the horizontal centroid of the person mask, and moves
+the paddle with it. Bricks at the top, ball falling down the tall panel, you
+stepping left and right in front of the camera. No buttons — it serves and
+restarts itself.
+
+```bash
+python3 camera_breakout.py
+python3 camera_breakout.py --no-flip      # if left/right feels reversed
+python3 camera_breakout.py --margin 0.2   # how far you have to actually move
+```
+
+### Straightening the wall: `wall.py`, `calib.py`, `ledtest.py`
+
+The panel is built from two serpentine snakes of 1800 LEDs, and the left half
+has a wiring quirk: alternating vertical lanes sit a couple of LEDs off along
+their length, so a straight horizontal row renders as a **comb**.
+
+`wall.py` fixes it in exactly one place. It owns the DDP socket, the geometry
+and a per-lane offset table, and every tool sends through it:
+
+```python
+from wall import DDP, W, H
+ddp = DDP()
+ddp.send(frame)          # (H, W, 3) uint8, correction applied for you
+```
+
+The offsets live in `wall_calib.json`. To tune them for your own build:
+
+```bash
+python3 ledtest.py --raw    # correction off — you should see the comb
+python3 ledtest.py          # correction on  — rows should be straight
+python3 calib.py            # interactive, with the gamepad
+```
+
+In `calib.py`, left/right selects a lane (drawn in bright yellow), up/down
+nudges it by one LED until its dots line up with its neighbours, **A** saves.
+**B** resets the selected lane, **Y** resets all of them, **Start** quits.
+Everything that goes through `wall.py` picks the new offsets up.
+
+---
+
+## Layout
+
+```
+niji.py               18 effects + CLI          } 1. effects
+niji_web.py           phone control panel       }
+
+mirror_rgb.py         the silhouette mirror     } 2. camera
+mirror_*.py           earlier approaches        }
+mirror.service        systemd unit              }
+
+wall.py               shared DDP + lane fix     } 3. games
+calib.py, ledtest.py  lane calibration          }
+tetris.py, snake.py, space_invaders.py          }
+camera_breakout.py    camera as the paddle      }
+```
+
+`niji.py` predates `wall.py` and still carries its own DDP sender; the games and
+newer tools all go through `wall.py`.
+
