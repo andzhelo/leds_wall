@@ -246,3 +246,9 @@ camera_breakout.py    camera as the paddle      }
 `niji.py` predates `wall.py` and still carries its own DDP sender; the games and
 newer tools all go through `wall.py`.
 
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE). Build one, change the dimensions, take the effects.
+
