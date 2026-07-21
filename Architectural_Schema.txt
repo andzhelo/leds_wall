@@ -1,0 +1,31 @@
++-----------------------------------------------------------------------------------+
+|                           USER / ENVIRONMENT LAYER                                |
+|   [Human Movement / Controller Inputs] -----> Captured by [Mini USB Camera]       |
++-----------------------------------------------------------------------------------+
+                                         |
+                                         v
++-----------------------------------------------------------------------------------+
+|                            PROCESSING LAYER (The Brain)                           |
+|   [Raspberry Pi 4] (Headless Debian / Systemd Service)                            |
+|     ├── OpenCV (MOG2 AI Background Subtraction & Video Preprocessing)             |
+|     ├── Custom Python Game Engines (Tetris, Snake, etc. via Bluetooth Controls)   |
+|     └── NumPy & UDP Packet Chunking Protocol (Bypasses 1500-Byte Wi-Fi MTU Limit)   |
++-----------------------------------------------------------------------------------+
+                                         |
+                                         v (Realtime UDP / DDP Packets over Wi-Fi)
++-----------------------------------------------------------------------------------+
+|                           CONTROL & POWER LAYER (The Muscle)                      |
+|   [DOMRAEM ESP32 Mld Digital LED Controller] running WLED                         |
+|     ├── GPIO Outputs (Data Signal split to handle massive LED payload)            |
+|     └── [600W Mean Well 12V Power Supply]                                         |
+|           ├── Direct Power Injection via WAGO Connectors (Bypasses Controller)    |
+|           └── Common Ground Reference                                             |
++-----------------------------------------------------------------------------------+
+                                         |
+                                         v
++-----------------------------------------------------------------------------------+
+|                             PHYSICAL DISPLAY LAYER                                |
+|   [3,600 Total LEDs] (WS2815 12V Digital Strips - 60 LEDs/m)                      |
+|     ├── Configured in a 2D Serpentine Grid Layout (Zig-Zag Data Flow)             |
+|     └── Mounted Flush Inside Custom Wood Slats Behind Silicone Diffusers          |
++-----------------------------------------------------------------------------------+
