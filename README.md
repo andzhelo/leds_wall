@@ -67,5 +67,75 @@ python3 niji_web.py        # serves on http://<this-machine>:8080
 
 Open that URL on a phone on the same Wi-Fi. The page is a grid of big
 emoji-labelled buttons (🔥 Fire, 🎆 Fireworks, 🌌 Aurora, 🕐 Clock, 🔤 Text …)
-with brightness and speed controls; `GET /api/state` and `POST /api/set` are
-there if you'd rather drive it from a script or a home-automation box.
+with brightness and speed sliders and a field for the scrolling text;
+`GET /api/state` and `POST /api/set` are there if you'd rather drive it from a
+script or a home-automation box.
+
+---
+
+## 2. The silhouette mirror (camera)
+
+Point a webcam at the wall's viewing spot and you appear on it, live. A person
+segmentation model cuts you out of the video; everything outside the mask goes
+black, so the wall shows a moving human shape and nothing else. Walk past it and
+it walks past with you.
+
+### `mirror_rgb.py` — the one to run
+
+Your **real video colours** inside a MediaPipe SelfieSegmentation mask: a red
+shirt is red on the wall, skin reads as skin, a hand raised over your chest is
+visible as a separate shape.
+
+```bash
+python3 mirror_rgb.py
+```
+
+Requires `opencv-python` and `mediapipe`, and a camera on `/dev/video0`. It
+grabs MJPG frames with `CAP_PROP_BUFFERSIZE=1` — on a Pi the driver otherwise
+queues frames and you end up mirroring where you were a second ago.
+
+### Tuning: `calibration.json`
+
+The mirror re-reads `calibration.json` from its own directory **every frame**,
+so you can sit at the wall, edit the file, and watch the change land — no
+restart. It's created with defaults on first run.
+
+| key | what it does |
+|---|---|
+| `rotate`, `flip_code` | orient the camera to match the wall |
+| `zoom`, `pan_x`, `pan_y` | frame the person in the tall 30x120 aspect |
+| `offset_x`, `offset_y` | nudge the output on the panel |
+| `brightness`, `color_order` | global level, RGB/GRB channel order |
+| `mask_threshold`, `smoothing`, `denoise`, `erode` | how tight and how stable the cutout is |
+| `rgb_mask` | `1` = person on black (the mirror look), `0` = raw full video |
+| `rgb_sat`, `rgb_gamma`, `rgb_gain` | make clothes pop on LEDs; gamma < 1 lifts dark indoor mids |
+| `rgb_auto`, `rgb_auto_target` | auto-exposure so it survives changing room light |
+| `rgb_idle`, `rgb_idle_bright`, `rgb_idle_delay` | after N seconds with nobody there, fade to a dim idle glow |
+
+### Running it as a service
+
+`mirror.service` is a systemd unit for a Pi: starts after the network is up,
+restarts on failure, and stops with SIGTERM (the script traps it to release the
+camera cleanly, otherwise the next start finds `/dev/video0` busy).
+
+```bash
+sudo cp mirror.service /etc/systemd/system/
+sudo systemctl enable --now mirror
+```
+
+Adjust `User=`, `WorkingDirectory=` and the venv path inside it first.
+
+### The other `mirror_*.py` files
+
+Earlier takes, kept because they're each interesting on their own:
+
+- `mirror_led.py`, `mirror_bgsub.py` — MOG2 background subtraction, one flat
+  silhouette colour. No ML dependency and very fast, but MOG2 absorbs anything
+  that holds still (stand there long enough and your legs disappear) and gives
+  up on dark clothes against a dark background. That's what pushed the project
+  to MediaPipe.
+- `mirror_udp.py`, `mirror_udp_fast.py`, `mirror_udp_orig.py` — the MediaPipe
+  mask as a solid colour fill, at various stages of latency surgery.
+- `mirror_parts.py`, `mirror_multiclass.py` — multi-class segmentation, colouring
+  hair / skin / clothes differently.
+- `mirror_claude.py`, `test.py`, `t.py` — scratch copies from the way there.
