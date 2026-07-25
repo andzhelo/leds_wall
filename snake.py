@@ -2,9 +2,10 @@
 """
 snake.py - Snake on the 30x120 Niji LED wall, played with a gamepad.
 
-The panel is 30 wide x 120 tall. At 3px per cell that's a 10 x 40 grid -- a
-long, tall playfield. Uses the shared wall.py transport (so the per-lane
-calibration applies here too) and the same evdev gamepad pattern as tetris.py.
+The panel is 30 wide x 120 tall. At 3px per cell that's a 10 x 40 grid; two
+rows are reserved for the score HUD, leaving a long, tall 10 x 38 playfield.
+Uses the shared wall.py transport (so the per-lane calibration applies here
+too) and the same evdev gamepad pattern as tetris.py.
 
     python3 snake.py
     python3 snake.py --dev /dev/input/event4 --fps 30 --wrap
@@ -28,8 +29,10 @@ from evdev import ecodes as e
 from wall import DDP, W, H
 
 BLOCK = 3
-COLS = W // BLOCK        # 10
-ROWS = H // BLOCK        # 40
+COLS = W // BLOCK                  # 10
+HUD_ROWS = 2                       # block rows reserved at the top for the score
+ROWS = H // BLOCK - HUD_ROWS       # 38 playable rows
+Y0 = HUD_ROWS * BLOCK              # first pixel row of the play field
 
 UP, DOWN, LEFT, RIGHT = (-1, 0), (1, 0), (0, -1), (0, 1)
 
@@ -179,8 +182,35 @@ class Snake:
 # Render
 # ----------------------------------------------------------------------------
 def draw_cell(frame, r, c, color):
-    y, x = r * BLOCK, c * BLOCK
+    y, x = Y0 + r * BLOCK, c * BLOCK
     frame[y:y + BLOCK, x:x + BLOCK] = color
+
+
+DIGITS_3x5 = {
+    "0": ("111", "101", "101", "101", "111"),
+    "1": ("110", "010", "010", "010", "111"),
+    "2": ("111", "001", "111", "100", "111"),
+    "3": ("111", "001", "111", "001", "111"),
+    "4": ("101", "101", "111", "001", "001"),
+    "5": ("111", "100", "111", "001", "111"),
+    "6": ("111", "100", "111", "101", "111"),
+    "7": ("111", "001", "001", "010", "010"),
+    "8": ("111", "101", "111", "101", "111"),
+    "9": ("111", "101", "111", "001", "111"),
+}
+
+
+def draw_number(frame, value, y=1, color=(200, 200, 210), right=W - 1, left_bound=0):
+    x = right - 2
+    for ch in reversed(str(int(value))):
+        if x < left_bound:
+            break
+        glyph = DIGITS_3x5[ch]
+        for dr in range(5):
+            for dc in range(3):
+                if glyph[dr][dc] == "1":
+                    frame[y + dr, x + dc] = color
+        x -= 4
 
 
 def render(game, bri=1.0):
@@ -199,6 +229,9 @@ def render(game, bri=1.0):
         draw_cell(frame, r, c, color)
     hr, hc = game.body[-1]
     draw_cell(frame, hr, hc, (180, 255, 180))  # bright head
+
+    # HUD: score in the top-right corner
+    draw_number(frame, game.score)
 
     if game.paused:
         frame = frame // 3
