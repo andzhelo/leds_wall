@@ -19,7 +19,7 @@ the song's real octave; only which track it falls down is folded.
 
 Seven rather than five is what makes the interesting songs possible at all: the
 F and the B are exactly the notes Twinkle, Ode to Joy, Happy Birthday, Jingle
-Bells and the Tetris theme need, and a pentatonic wall has neither.
+Bells and Korobeiniki need, and a pentatonic wall has neither.
 
 The colours match piano.py's lanes -- red C through violet at the top of the
 octave. The same colour means the same note in both programs, so practising one
@@ -29,7 +29,7 @@ Detection works the way the piano's does -- in wall space, against the note's
 own drawn rectangle. What you see is exactly what you have to touch.
 
     python3 notecatch.py                       # Mary Had a Little Lamb
-    python3 notecatch.py --song tetris
+    python3 notecatch.py --song korobeiniki
     python3 notecatch.py --bpm 40 --fall 3.5   # slower, easier
     python3 notecatch.py --list-songs
 
@@ -334,7 +334,7 @@ def main():
             used = sorted({track_of(piano.KEY_FREQS[k]) for k in keys})
             print(f"  {key:<10} {title:<38} {len(keys):>3} notes  "
                   f"{len(used)}/{TRACKS} tracks")
-        print("\n  python3 notecatch.py --song tetris")
+        print("\n  python3 notecatch.py --song korobeiniki")
         return
 
     title, keys, shift = load_song(args.song, args.song_file)

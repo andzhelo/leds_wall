@@ -17,8 +17,8 @@ marimba. That gives a clear moment of contact. Sweeping a hand sideways across
 the keys plays a glissando.
 
 Keys are a major scale (C D E F G A B), seven per lane, so the songs people
-actually know are playable -- Twinkle, Ode to Joy, Happy Birthday, the Tetris
-theme. --scale pentatonic (C D E G A) drops the F and the B, which makes every
+actually know are playable -- Twinkle, Ode to Joy, Happy Birthday,
+Korobeiniki. --scale pentatonic (C D E G A) drops the F and the B, which makes every
 combination consonant and free play foolproof, at the cost of most of the
 songs. The root of each octave is marked brighter.
 
@@ -46,7 +46,7 @@ person with arms. Frame yourself with --zoom / --pan-x / --pan-y.
     python3 piano.py --zoom 1.4          # crop in tighter
     python3 piano.py --sens 0.7          # easier to trigger
     python3 piano.py --key-row auto      # float the keys above your head instead
-    python3 piano.py --song tetris       # follow-the-light practice
+    python3 piano.py --song korobeiniki       # follow-the-light practice
     python3 piano.py --list-songs
     python3 piano.py --scale pentatonic  # no wrong notes, fewer songs
     python3 piano.py --calib             # terminal meters, no LEDs
@@ -211,7 +211,7 @@ def load_mirror_calib():
 # Pentatonic (C D E G A) has no wrong notes: every combination is consonant, so
 # waving both hands around sounds musical. That is what it was built on. But it
 # has no F and no B, and that rules out most of the tunes anyone actually wants
-# to play -- Twinkle, Ode to Joy, Happy Birthday, Jingle Bells, the Tetris theme.
+# to play -- Twinkle, Ode to Joy, Happy Birthday, Jingle Bells, Korobeiniki.
 #
 # Major (C D E F G A B) is the default now because the songs are the point. Free
 # play is slightly riskier -- a B against a C is a real semitone clash -- but
@@ -397,7 +397,7 @@ SONGS = {
     "jingle": ("Jingle Bells",
                "E4 E4 E4  E4 E4 E4  E4 G4 C4 D4 E4 "
                "F4 F4 F4 F4 F4 E4 E4 E4 E4 D4 D4 E4 D4 G4"),
-    "tetris": ("Tetris (Korobeiniki)",
+    "korobeiniki": ("Korobeiniki",
                "E5 B4 C5 D5 C5 B4 A4 A4 C5 E5 D5 C5 B4 C5 D5 E5 C5 A4 A4 "
                "D5 F5 A5 G5 F5 E5 C5 E5 D5 C5 B4 B4 C5 D5 E5 C5 A4 A4"),
     # Written in G rather than C: the pickup is the dominant *below* the tonic,

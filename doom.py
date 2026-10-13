@@ -19,7 +19,7 @@ firing snaps to anything within AIM_TOL columns of centre because pixel-precise
 aim is not possible here.
 
 Uses the shared wall.py transport (per-lane calibration applies) and the same
-evdev gamepad pattern as tetris.py/snake.py, extended with analog axes.
+evdev gamepad pattern as block_game.py/snake.py, extended with analog axes.
 
     python3 doom.py
     python3 doom.py --dev /dev/input/event4 --fps 30 --bri 0.8
@@ -181,7 +181,7 @@ def shade(color, dist, extra=1.0):
 
 
 # ----------------------------------------------------------------------------
-# Gamepad. Same background-thread pattern as tetris.py/space_invaders.py, but
+# Gamepad. Same background-thread pattern as block_game.py/space_invaders.py, but
 # exposing normalised analog axes (-1..1) since turning needs to be smooth, plus
 # a held-fire flag rather than only edge-triggered actions.
 # ----------------------------------------------------------------------------

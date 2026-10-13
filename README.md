@@ -1,9 +1,22 @@
-# LED Wall
+# LED Wall 👁️
 
-A 30 x 120 pixel LED wall (3600 addressable LEDs, driven by [WLED](https://kno.wled.ge/))
-and the Python that makes it do interesting things: custom animations with a
-phone-friendly control page, a live camera "mirror" that paints you onto the
-wall, and a handful of arcade games you play on it with a gamepad.
+![The wall's eye following a person across the room](docs/eye.gif)
+
+A **30 × 120** LED wall (3,600 LEDs) running [WLED](https://kno.wled.ge/), driven by a
+Raspberry Pi and some Python. A camera watches the room and the Pi turns what it
+sees into light on the wall, live.
+
+**Seen it on Instagram?** The two things in the videos:
+
+- **👁️ The eye** (`eye.py`) — a giant eye built into the wall that finds the nearest
+  person with the camera and *follows them around the room*. It blinks, looks around
+  when it's bored, and its pupil widens as you get closer.
+- **🪞 The mirror** (`mirror_rgb.py`) — stand in front of it and you appear on the
+  wall, live, in your real colours, cut out from everything behind you.
+
+The wall also runs 18 generative [effects](#1-wled-effects--web-control-page) with a
+phone control page, and [arcade games](#3-games-played-with-a-gamepad) you play on it
+with a gamepad.
 
 Everything renders to the same target: a `(120, 30, 3)` uint8 NumPy frame, sent
 to WLED over **DDP** (UDP port 4048). WLED is configured as a 2D matrix, so the
@@ -73,14 +86,52 @@ script or a home-automation box.
 
 ---
 
-## 2. The silhouette mirror (camera)
+## 2. The camera: an eye and a mirror
 
-Point a webcam at the wall's viewing spot and you appear on it, live. A person
-segmentation model cuts you out of the video; everything outside the mask goes
-black, so the wall shows a moving human shape and nothing else. Walk past it and
-it walks past with you.
+Point a webcam at the wall's viewing spot. The same MediaPipe person-segmentation
+pipeline drives two very different looks — an **eye that watches you**, and a
+**mirror that becomes you**.
 
-### `mirror_rgb.py` — the one to run
+### `eye.py` — the eye that follows you  👁️
+
+One giant almond eye painted across the full width of the panel, centred
+vertically. MediaPipe finds the nearest person each frame and the iris + pupil
+glide to look straight at them; the lids, iris and catchlight are all drawn with
+anti-aliased soft edges, so a 30-pixel-wide eye still reads as an eye. Three
+behaviours give it life:
+
+- **Blink** every few seconds (`eye_blink_every`).
+- **Idle wander** — after a while with nobody in frame, it slowly looks around on
+  its own, so an empty room isn't a dead stare.
+- **Dilate** — the pupil widens as you fill more of the camera frame, i.e. as you
+  walk up to it.
+
+```bash
+python3 eye.py
+```
+
+Needs `opencv-python` + `mediapipe` and a camera on `/dev/video0`, same as the
+mirror. It shares `calibration.json` (reusing the `rotate` / `flip_code` /
+`color_order` / `brightness` keys) and the per-lane `wall_calib.json` wiring fix
+with the games, re-reading both **every frame** so you can tune it live. Its own
+`eye_*` knobs:
+
+| key | what it does |
+|---|---|
+| `eye_half_w`, `eye_half_h` | eye size in px (half-width / half-height from centre) |
+| `eye_cx`, `eye_cy` | nudge the eye's position on the panel |
+| `eye_corner`, `eye_upper`, `eye_lower` | almond shape: pointier canthi, a taller upper lid |
+| `eye_iris_r`, `eye_pupil_min`, `eye_pupil_max` | iris size and the pupil's dilation range |
+| `eye_iris_col`, `eye_sclera_col`, `eye_catchlight` | colours and the specular glint |
+| `eye_track`, `eye_gaze_smooth`, `eye_flip_x` / `eye_flip_y` | how far / how smoothly the gaze follows, and its direction |
+| `eye_blink`, `eye_idle`, `eye_dilate` | toggle each behaviour (`1` / `0`) |
+| `eye_lane_correct` | apply the per-lane wiring fix inside the render (`1` / `0`) |
+
+### `mirror_rgb.py` — the mirror you step into
+
+Stand at the wall and you appear on it, live. The segmentation model cuts you out
+of the video; everything outside the mask goes black, so the wall shows a moving
+human shape and nothing else. Walk past it and it walks past with you.
 
 Your **real video colours** inside a MediaPipe SelfieSegmentation mask: a red
 shirt is red on the wall, skin reads as skin, a hand raised over your chest is
@@ -145,7 +196,7 @@ Earlier takes, kept because they're each interesting on their own:
 ## 3. Games, played with a gamepad
 
 The wall is 30 x 120. At 3 pixels per block that's a **10 x 40 grid** — which is
-exactly a standard Tetris well, and a genuinely good shape for anything that
+exactly a standard falling-blocks well, and a genuinely good shape for anything that
 falls. So it became an arcade cabinet.
 
 Input is a gamepad read through `evdev` (developed with a Flydigi Vader 4 Pro in
@@ -153,13 +204,13 @@ XInput mode, which enumerates as a plain "Microsoft X-Box 360 pad", so any
 XInput controller should work). The device is auto-detected; override it with
 `--dev /dev/input/eventN`. Install with `pip3 install evdev`.
 
-### `tetris.py`
+### `block_game.py`
 
 A 10-wide, 36-deep well with a HUD at the top showing the next piece.
 
 ```bash
-python3 tetris.py
-python3 tetris.py --dev /dev/input/event4 --fps 30
+python3 block_game.py
+python3 block_game.py --dev /dev/input/event4 --fps 30
 ```
 
 | control | action |
@@ -233,13 +284,16 @@ Everything that goes through `wall.py` picks the new offsets up.
 niji.py               18 effects + CLI          } 1. effects
 niji_web.py           phone control panel       }
 
-mirror_rgb.py         the silhouette mirror     } 2. camera
+eye.py                the eye that follows you  } 2. camera
+mirror_rgb.py         the silhouette mirror     }
 mirror_*.py           earlier approaches        }
 mirror.service        systemd unit              }
 
 wall.py               shared DDP + lane fix     } 3. games
 calib.py, ledtest.py  lane calibration          }
-tetris.py, snake.py, space_invaders.py          }
+block_game.py         falling-blocks stacker    }
+snake.py              snake                     }
+space_invaders.py     space invaders            }
 camera_breakout.py    camera as the paddle      }
 ```
 

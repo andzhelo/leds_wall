@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-tetris.py - Tetris on the 30x120 Niji LED wall, played with a gamepad.
+block_game.py - a falling-blocks stacker on the 30x120 Niji LED wall, played with a gamepad.
 
 The panel is 30 wide x 120 tall. At 3px per block that's exactly a 10-wide
-well (standard Tetris width) with room to spare vertically, so we get a deep
+well (standard stacker width) with room to spare vertically, so we get a deep
 36-row well below a small HUD that shows the next piece.
 
 Reuses the DDP transport and geometry from niji.py -- nothing about the wall
@@ -13,8 +13,8 @@ Input: a gamepad exposed via evdev (tested with a Flydigi Vader 4 Pro in
 XInput mode, which enumerates as "Microsoft X-Box 360 pad"). The device is
 auto-detected; override with --dev /dev/input/eventN.
 
-    python3 tetris.py
-    python3 tetris.py --dev /dev/input/event4 --fps 30
+    python3 block_game.py
+    python3 block_game.py --dev /dev/input/event4 --fps 30
 
 Controls (left stick or D-pad for movement):
     left / right   move
@@ -48,7 +48,7 @@ WELL_Y0 = HUD_ROWS * BLOCK       # first pixel row of the well
 # ----------------------------------------------------------------------------
 # Tetrominoes. Each piece is a list of (row, col) cells in its spawn state,
 # defined inside a 4x4 box so rotation is a clean 90-degree turn about the box
-# centre. Colours follow the modern Tetris guideline.
+# centre. Colours follow a standard colour-per-shape scheme.
 # ----------------------------------------------------------------------------
 PIECES = {
     "I": {"cells": [(1, 0), (1, 1), (1, 2), (1, 3)], "color": (0, 220, 230), "box": 4},
@@ -197,7 +197,7 @@ class Gamepad(threading.Thread):
 # ----------------------------------------------------------------------------
 # Game
 # ----------------------------------------------------------------------------
-class Tetris:
+class BlockGame:
     def __init__(self):
         self.reset()
 
@@ -275,7 +275,7 @@ class Tetris:
         if self._collides(self.piece.cells, self.piece.row, self.piece.col):
             self.game_over = True
 
-    # classic Tetris line-clear points, scaled by the level you cleared them at
+    # classic line-clear points, scaled by the level you cleared them at
     _LINE_POINTS = {1: 40, 2: 100, 3: 300, 4: 1200}
 
     def _clear_lines(self):
@@ -375,7 +375,7 @@ def render(game, bri=1.0):
 # Main loop
 # ----------------------------------------------------------------------------
 def main():
-    ap = argparse.ArgumentParser(description="Tetris on the 30x120 Niji wall.")
+    ap = argparse.ArgumentParser(description="Falling-blocks stacker on the 30x120 Niji wall.")
     ap.add_argument("--dev", help="evdev path, e.g. /dev/input/event4 (auto if omitted)")
     ap.add_argument("--fps", type=int, default=30)
     ap.add_argument("--bri", type=float, default=1.0)
@@ -392,7 +392,7 @@ def main():
     print(f"Controller: {pad.name} ({path})")
 
     ddp = DDP()
-    game = Tetris()
+    game = BlockGame()
 
     frame_dt = 1.0 / args.fps
     grav_counter = 0

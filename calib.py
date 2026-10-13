@@ -5,7 +5,7 @@ calib.py - interactive per-lane calibration for the Niji wall, using the gamepad
 Shows horizontal reference lines across all 30 lanes. Pick a lane and nudge its
 offset until its dots line up with the neighbouring lanes; repeat across the
 wall; save. The result is written to wall_calib.json and picked up by wall.py,
-so tetris / niji / mirror all inherit the correction.
+so block_game / niji / mirror all inherit the correction.
 
     python3 calib.py                 # auto-detect gamepad
     python3 calib.py --dev /dev/input/event4

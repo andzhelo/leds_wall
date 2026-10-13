@@ -5,7 +5,7 @@ snake.py - Snake on the 30x120 Niji LED wall, played with a gamepad.
 The panel is 30 wide x 120 tall. At 3px per cell that's a 10 x 40 grid; two
 rows are reserved for the score HUD, leaving a long, tall 10 x 38 playfield.
 Uses the shared wall.py transport (so the per-lane calibration applies here
-too) and the same evdev gamepad pattern as tetris.py.
+too) and the same evdev gamepad pattern as block_game.py.
 
     python3 snake.py
     python3 snake.py --dev /dev/input/event4 --fps 30 --wrap

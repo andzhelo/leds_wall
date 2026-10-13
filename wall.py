@@ -10,7 +10,7 @@ serpentine "snakes" of 1800 LEDs each:
 Half 1 has a wiring quirk: alternating vertical lanes are offset by 2 LEDs along
 the lane relative to their neighbours, so a straight row renders as a comb on the
 left half. apply_correction() rolls the offending lanes back by 2 to straighten
-it. All tools (tetris, niji, mirror) should send through DDP here so the fix
+it. All tools (block_game, niji, mirror) should send through DDP here so the fix
 lives in exactly one place.
 
     from wall import DDP, W, H

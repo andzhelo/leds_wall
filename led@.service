@@ -14,7 +14,7 @@ StartLimitBurst=4
 [Service]
 Type=simple
 User=andzhelo
-# video = camera (mirror/eye/piano), input = gamepad (snake/tetris), audio = piano sound
+# video = camera (mirror/eye/piano), input = gamepad (snake/block_game), audio = piano sound
 SupplementaryGroups=video input audio
 WorkingDirectory=/home/andzhelo/mirror-poc
 ExecStart=/home/andzhelo/mirror-poc/venv/bin/python /home/andzhelo/mirror-poc/%i.py

@@ -8,7 +8,7 @@
 |                            PROCESSING LAYER (The Brain)                           |
 |   [Raspberry Pi 4] (Headless Debian / Systemd Service)                            |
 |     ├── OpenCV (MOG2 AI Background Subtraction & Video Preprocessing)             |
-|     ├── Custom Python Game Engines (Tetris, Snake, etc. via Bluetooth Controls)   |
+|     ├── Custom Python Game Engines (Blocks, Snake, etc. via Bluetooth Controls)   |
 |     └── NumPy & UDP Packet Chunking Protocol (Bypasses 1500-Byte Wi-Fi MTU Limit)   |
 +-----------------------------------------------------------------------------------+
                                          |

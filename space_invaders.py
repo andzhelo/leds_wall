@@ -7,7 +7,7 @@ rows are reserved for the score HUD, leaving a 10 x 38 play field. The wall's
 unusually tall, narrow shape actually suits this game well -- invaders get a
 long march down towards the player instead of the usual few rows. Uses the
 shared wall.py transport (per-lane calibration applies here too) and the same
-evdev gamepad pattern as tetris.py/snake.py.
+evdev gamepad pattern as block_game.py/snake.py.
 
     python3 space_invaders.py
     python3 space_invaders.py --dev /dev/input/event4 --fps 30
@@ -60,7 +60,7 @@ ENEMY_FIRE_CHANCE = 0.02            # per-frame chance to add an enemy bullet
 
 # ----------------------------------------------------------------------------
 # Gamepad: background thread keeps latest held direction + edge-triggered
-# actions (fire/pause). Same pattern as tetris.py.
+# actions (fire/pause). Same pattern as block_game.py.
 # ----------------------------------------------------------------------------
 ACT_FIRE = "fire"
 ACT_PAUSE = "pause"
