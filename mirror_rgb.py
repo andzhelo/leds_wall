@@ -300,7 +300,7 @@ try:
             chunk_bytes = chunk_pixels * 3
             byte_offset = i * 3
             is_last = (i + MAX_PIXELS_PER_PACKET) >= NUM_LEDS
-            flags = 0x41 if is_last else 0x01
+            flags = 0x41 if is_last else 0x40   # push only on the last packet (no tearing)
             header = bytes([
                 flags, 0x00, 0x01, 0x00,
                 (byte_offset >> 24) & 0xFF, (byte_offset >> 16) & 0xFF,

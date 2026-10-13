@@ -1,0 +1,29 @@
+[Unit]
+# One template for every LED-wall app. The instance name after the @ is the
+# script to run, e.g.  led@snake  ->  snake.py ,  led@block_game -> block_game.py
+# Start one from a phone shortcut with:
+#   sudo systemctl stop 'led@*.service'; sudo systemctl start led@snake.service
+# Only one can own the panel/camera/gamepad, so the shortcut stops the others first.
+Description=LED wall app: %i
+After=network-online.target sound.target
+Wants=network-online.target
+# give up after a few rapid failures (e.g. no gamepad/camera) instead of looping
+StartLimitIntervalSec=30
+StartLimitBurst=4
+
+[Service]
+Type=simple
+User=andzhelo
+# video = camera (mirror/eye/piano), input = gamepad (snake/tetris), audio = piano sound
+SupplementaryGroups=video input audio
+WorkingDirectory=/home/andzhelo/mirror-poc
+ExecStart=/home/andzhelo/mirror-poc/venv/bin/python /home/andzhelo/mirror-poc/%i.py
+Environment=PYTHONUNBUFFERED=1 SDL_AUDIODRIVER=alsa
+Restart=on-failure
+RestartSec=3
+# the camera scripts trap SIGTERM to release /dev/video0 cleanly on stop
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

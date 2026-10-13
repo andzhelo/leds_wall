@@ -54,6 +54,10 @@ MAX_PIXELS_PER_PACKET = 480
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CALIB_PATH = os.path.join(BASE_DIR, "calibration.json")
+# Per-lane physical wiring correction, SHARED with the games (wall.py / calib.py).
+# Each vertical lane x is rolled by offsets[x] LEDs so straight rows render
+# straight. Tune it live with `python3 calib.py`; the eye inherits the result.
+WALL_CALIB_PATH = os.path.join(BASE_DIR, "wall_calib.json")
 
 DEFAULT_CALIB = {
     "rotate": 0,
@@ -65,12 +69,18 @@ DEFAULT_CALIB = {
 
     # --- eye geometry (pixels on the 30x120 wall) ---
     "eye_half_w": 15.0,     # full width of the panel
-    "eye_half_h": 20.0,     # ~40 px tall almond, centered
+    "eye_half_h": 16.0,     # vertical radius (flatter than wide -> almond)
     "eye_cx": 0.0,
     "eye_cy": 0.0,
-    "eye_iris_r": 9.0,
+    # almond shape: >1 corners = pointier (real-eye canthi); upper lid taller
+    # than lower for a natural asymmetric eye.
+    "eye_corner": 1.15,
+    "eye_upper": 1.0,
+    "eye_lower": 0.72,
+    "eye_edge_soft": 1.7,   # eyelid outline softness (x feather); hides lane offset
+    "eye_iris_r": 8.0,
     "eye_pupil_min": 2.6,
-    "eye_pupil_max": 6.5,
+    "eye_pupil_max": 6.0,
     "eye_feather": 1.3,
 
     # --- colours ---
@@ -94,6 +104,9 @@ DEFAULT_CALIB = {
 
     # render smoothing (small temporal blend to calm LED shimmer)
     "eye_render_smooth": 0.3,
+
+    # lane correction ON (applied smoothly in the render, no pupil comb); 0 = off
+    "eye_lane_correct": 1,
 }
 
 _CH = {"R": 0, "G": 1, "B": 2}
@@ -120,6 +133,26 @@ def load_calibration(state):
             print("Calibration not reloaded (will retry):", e)
             return calib, last_mtime
     return calib, last_mtime
+
+
+def load_lane_offsets(state):
+    """Hot-reload wall_calib.json (same file calib.py writes). Zeros if absent."""
+    offs, last_mtime = state
+    try:
+        mtime = os.path.getmtime(WALL_CALIB_PATH)
+    except OSError:
+        return [0] * MATRIX_WIDTH, None
+    if mtime != last_mtime:
+        try:
+            with open(WALL_CALIB_PATH) as f:
+                vals = [int(v) for v in json.load(f).get("offsets", [])]
+            if len(vals) == MATRIX_WIDTH:
+                print("Lane calibration loaded:", vals)
+                return vals, mtime
+            print(f"Lane calib ignored: expected {MATRIX_WIDTH} offsets, got {len(vals)}")
+        except (OSError, ValueError, TypeError, json.JSONDecodeError) as ex:
+            print("Lane calib not loaded (will retry):", ex)
+    return offs, last_mtime
 
 
 class FreshestFrame(threading.Thread):
@@ -174,6 +207,7 @@ segmenter = mp.solutions.selfie_segmentation.SelfieSegmentation(model_selection=
 YY, XX = np.mgrid[0:MATRIX_HEIGHT, 0:MATRIX_WIDTH].astype(np.float32)
 
 calib_state = load_calibration((dict(DEFAULT_CALIB), 0.0))
+lane_state = load_lane_offsets(([0] * MATRIX_WIDTH, None))
 
 print("Warming up camera + MediaPipe model (a few seconds)...")
 cam = FreshestFrame(cap)
@@ -276,21 +310,41 @@ try:
         cx0 = (MATRIX_WIDTH - 1) / 2.0 + float(c.get("eye_cx", 0.0))
         cy0 = (MATRIX_HEIGHT - 1) / 2.0 + float(c.get("eye_cy", 0.0))
 
+        # Per-lane wiring correction, applied as a per-COLUMN vertical shift of
+        # the render coordinate (not a roll of the finished frame). The eye is
+        # drawn with soft edges, so this shift straightens the iris/outline on
+        # the wall while the pupil stays smooth instead of combing into lines.
+        lane_state = load_lane_offsets(lane_state)
+        offs = lane_state[0]
+        if bool(int(c.get("eye_lane_correct", 1))) and any(offs):
+            YYc = YY - np.asarray(offs, np.float32)[None, :]   # shift each column
+        else:
+            YYc = YY
+
         nx = (XX - cx0) / half_w                 # -1..1 across the eye
-        lid = np.sqrt(np.clip(1.0 - nx * nx, 0.0, 1.0))   # almond curve
-        open_limit = half_h * lid * max(0.0, openness)
-        vy = YY - cy0
-        corner_gate = np.clip((1.0 - nx * nx) / 0.08, 0.0, 1.0)
-        eye_alpha = smoothstep_alpha(open_limit - np.abs(vy), feather) * corner_gate
+        # almond lids: pointier corners (eye_corner>1) and an upper lid taller
+        # than the lower one, like a real eye. Upper/lower handled separately.
+        corner = max(0.3, float(c.get("eye_corner", 1.15)))
+        curve = np.clip(1.0 - nx * nx, 0.0, 1.0) ** corner
+        op = max(0.0, openness)
+        upper = half_h * float(c.get("eye_upper", 1.0)) * curve * op
+        lower = half_h * float(c.get("eye_lower", 0.72)) * curve * op
+        vy = YYc - cy0
+        # inside the lids when this is positive (upper arc above, lower arc below)
+        signed = np.where(vy <= 0.0, upper + vy, lower - vy)
+        corner_gate = np.clip((1.0 - nx * nx) / 0.05, 0.0, 1.0)
+        edge_feather = feather * float(c.get("eye_edge_soft", 1.7))
+        eye_alpha = smoothstep_alpha(signed, edge_feather) * corner_gate
 
         # iris + pupil follow the gaze, clipped by the eyelids
-        iris_r = float(c.get("eye_iris_r", 9.0))
+        iris_r = float(c.get("eye_iris_r", 8.0))
         max_tx = max(0.0, half_w - iris_r)
-        max_ty = max(0.0, half_h - iris_r)
+        max_ty = max(0.0, half_h * min(float(c.get("eye_upper", 1.0)),
+                                       float(c.get("eye_lower", 0.72))) - iris_r)
         track = float(c.get("eye_track", 1.0))
         ix = cx0 + gaze_x * max_tx * track
         iy = cy0 + gaze_y * max_ty * track
-        ir = np.sqrt((XX - ix) ** 2 + (YY - iy) ** 2)
+        ir = np.sqrt((XX - ix) ** 2 + (YYc - iy) ** 2)
         iris_alpha = smoothstep_alpha(iris_r - ir, feather) * eye_alpha
         pupil_alpha = smoothstep_alpha(pupil_r_s - ir, feather) * eye_alpha
 
@@ -307,7 +361,7 @@ try:
         # catchlight: small specular dot up-left of the iris
         if bool(int(c.get("eye_catchlight", 1))):
             clx, cly = ix - iris_r * 0.35, iy - iris_r * 0.4
-            cl = np.sqrt((XX - clx) ** 2 + (YY - cly) ** 2)
+            cl = np.sqrt((XX - clx) ** 2 + (YYc - cly) ** 2)
             cl_alpha = smoothstep_alpha(max(1.4, iris_r * 0.22) - cl, feather) * eye_alpha
             canvas = canvas * (1.0 - cl_alpha[:, :, None]) + cl_alpha[:, :, None]
 
@@ -321,14 +375,18 @@ try:
         out_rgb = np.clip(smoothed * bright * 255.0, 0, 255).astype(np.uint8)
         order = str(c["color_order"]).upper()
         perm = [_CH.get(ch, i) for i, ch in enumerate(order[:3])]
-        pixel_bytes = out_rgb[:, :, perm].tobytes()
+        out_rgb = out_rgb[:, :, perm]
+        pixel_bytes = out_rgb.tobytes()
 
         for i in range(0, NUM_LEDS, MAX_PIXELS_PER_PACKET):
             chunk_pixels = min(MAX_PIXELS_PER_PACKET, NUM_LEDS - i)
             chunk_bytes = chunk_pixels * 3
             byte_offset = i * 3
             is_last = (i + MAX_PIXELS_PER_PACKET) >= NUM_LEDS
-            flags = 0x41 if is_last else 0x01
+            # PUSH (0x01) only on the LAST packet so WLED renders the whole
+            # frame atomically; pushing every packet tears the eye at the
+            # 16-row packet boundaries (rows 48 & 64 cross the pupil).
+            flags = 0x41 if is_last else 0x40
             header = bytes([
                 flags, 0x00, 0x01, 0x00,
                 (byte_offset >> 24) & 0xFF, (byte_offset >> 16) & 0xFF,
